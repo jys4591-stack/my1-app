@@ -11,6 +11,12 @@ export class MissingApiKeyError extends Error {}
 // Claude가 안전 정책으로 답을 거절했을 때 (대체 모델까지 거절한 경우)
 export class ClaudeRefusalError extends Error {}
 
+// Claude에 보낼 사진 하나 (base64로 바꾼 것)
+export type PhotoInput = {
+  mediaType: "image/jpeg" | "image/png";
+  base64: string;
+};
+
 function createClient(): Anthropic {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -19,9 +25,12 @@ function createClient(): Anthropic {
   return new Anthropic({ apiKey });
 }
 
-// PLAN 6: 글자 질문 하나를 보내 답을 받습니다. (연결 확인용)
-// 사진·분류·사례·답변 초안은 PLAN 9~12번에서 이 파일에 더합니다.
-export async function askClaudeText(question: string): Promise<string> {
+// PLAN 9: 사진(1~3장) + 질문을 보내 답을 글로 받습니다.
+// 상황 분류·유사 사례·답변 초안 규칙은 PLAN 10~12번에서 이 함수에 더합니다.
+export async function askClaudeAboutPhotos(
+  question: string,
+  photos: PhotoInput[],
+): Promise<string> {
   const client = createClient();
 
   const response = await client.beta.messages.create({
@@ -32,8 +41,23 @@ export async function askClaudeText(question: string): Promise<string> {
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
     system:
-      "당신은 국유재산 관리 직원을 돕는 도우미입니다. 한국어로 짧고 정확하게 답하세요.",
-    messages: [{ role: "user", content: question }],
+      "당신은 국유재산 관리 직원을 돕는 도우미입니다. 사진 여러 장은 같은 현장을 찍은 것으로 보고, 사진 속 상황을 근거로 한국어로 짧고 정확하게 답하세요. 사진 속 사람 얼굴, 차량 번호, 주소 같은 개인정보는 글로 옮기지 마세요.",
+    messages: [
+      {
+        role: "user",
+        content: [
+          ...photos.map((photo) => ({
+            type: "image" as const,
+            source: {
+              type: "base64" as const,
+              media_type: photo.mediaType,
+              data: photo.base64,
+            },
+          })),
+          { type: "text" as const, text: question },
+        ],
+      },
+    ],
   });
 
   if (response.stop_reason === "refusal") {

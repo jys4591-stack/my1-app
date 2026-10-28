@@ -36,4 +36,5 @@ export type ChatMessage = {
   role: "user" | "assistant"; // 나 / AI
   text: string;
   photoUrls?: string[]; // 내가 보낸 사진 미리보기
+  isError?: boolean; // 오류 안내 말풍선이면 빨간색으로 표시
 };
