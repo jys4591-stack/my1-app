@@ -1,24 +1,35 @@
-// 첫 화면 (PLAN 3: Next.js 예시 내용을 지우고 앱 소개만 남김)
-// 대화 영역·사진 올리기·입력 줄은 PLAN 7~8번에서 부품(components)으로 붙입니다.
-export default function Home() {
-  return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10">
-      <header className="flex flex-col gap-2 border-b border-zinc-200 pb-6 dark:border-zinc-800">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          국유재산 현장사진 AI 도우미
-        </h1>
-        <p className="text-zinc-600 dark:text-zinc-400">
-          현장사진과 질문을 올리면 상황 분류, 유사 사례, 민원 답변 초안을
-          보여 드립니다.
-        </p>
-        <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-          얼굴·차량 번호판·주소가 보이는 사진은 올리지 마세요.
-        </p>
-      </header>
+"use client";
 
-      <section className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-zinc-300 p-10 text-center text-zinc-500 dark:border-zinc-700">
-        대화 화면을 준비하고 있어요.
-      </section>
+// 첫 화면: 머리글 · 대화 영역 · 입력 줄을 조립하고 대화 내용을 관리합니다 (DESIGN.md 2절)
+// ③ 사진 올리기 줄은 PLAN 8번, 서버로 보내 AI 답을 받는 부분은 PLAN 9번에서 붙입니다.
+import { useRef, useState } from "react";
+import ChatList from "@/app/components/ChatList";
+import Header from "@/app/components/Header";
+import QuestionInput from "@/app/components/QuestionInput";
+import type { ChatMessage } from "@/lib/types";
+
+// AI 연결 전까지 보여 줄 임시 안내 (PLAN 9번에서 실제 AI 결과로 바꿈)
+const PLACEHOLDER_REPLY =
+  "아직 AI가 연결되지 않았어요. 사진 올리기와 AI 분석은 다음 단계에서 붙어요.";
+
+export default function Home() {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const nextId = useRef(1);
+
+  function handleSend(question: string) {
+    setMessages((previous) => [
+      ...previous,
+      { id: nextId.current++, role: "user", text: question },
+      { id: nextId.current++, role: "assistant", text: PLACEHOLDER_REPLY },
+    ]);
+  }
+
+  return (
+    <main className="mx-auto flex h-dvh w-full max-w-3xl flex-col gap-4 px-4 py-6">
+      <Header />
+      {/* waiting은 PLAN 9번에서 서버 응답을 기다리는 동안 true가 됩니다 */}
+      <ChatList messages={messages} waiting={false} />
+      <QuestionInput disabled={false} onSend={handleSend} />
     </main>
   );
 }

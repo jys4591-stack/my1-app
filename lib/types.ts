@@ -21,3 +21,10 @@ export type Case = {
   action: string; // 조치 내용
   replyExample: string; // 민원 답변 예시
 };
+
+// 대화 영역에 보이는 말풍선 하나 (DESIGN.md 2절 ②)
+export type ChatMessage = {
+  id: number;
+  role: "user" | "assistant"; // 나 / AI
+  text: string;
+};
