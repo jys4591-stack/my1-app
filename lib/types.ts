@@ -22,9 +22,18 @@ export type Case = {
   replyExample: string; // 민원 답변 예시
 };
 
+// 사진 올리기 줄에서 고른 사진 하나 (DESIGN.md 2절 ③)
+export type PickedPhoto = {
+  id: number;
+  name: string; // 원래 파일 이름
+  blob: Blob; // 긴 변 1568px JPG로 줄인 사진 (서버로 보낼 것)
+  previewUrl: string; // 미리보기용 주소
+};
+
 // 대화 영역에 보이는 말풍선 하나 (DESIGN.md 2절 ②)
 export type ChatMessage = {
   id: number;
   role: "user" | "assistant"; // 나 / AI
   text: string;
+  photoUrls?: string[]; // 내가 보낸 사진 미리보기
 };

@@ -1,6 +1,7 @@
 "use client";
 
 // ② 대화 영역: 주고받은 말풍선을 위에서 아래로 쌓아 보여 줍니다 (DESIGN.md 2절)
+import Image from "next/image";
 import { useEffect, useRef } from "react";
 import type { ChatMessage } from "@/lib/types";
 
@@ -42,6 +43,20 @@ export default function ChatList({ messages, waiting }: Props) {
           <span className="sr-only">
             {message.role === "user" ? "나: " : "AI: "}
           </span>
+          {message.photoUrls && message.photoUrls.length > 0 && (
+            <div className="mb-2 flex gap-1.5">
+              {message.photoUrls.map((url, index) => (
+                <Image
+                  key={url}
+                  src={url}
+                  alt={`보낸 사진 ${index + 1}`}
+                  width={64}
+                  height={64}
+                  className="h-16 w-16 rounded-md object-cover"
+                />
+              ))}
+            </div>
+          )}
           {message.text}
         </div>
       ))}
