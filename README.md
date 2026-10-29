@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 국유재산 현장사진 AI 도우미
 
-## Getting Started
+국유재산 관리 담당 직원이 **현장사진과 질문을 올리면**, AI가 사진 속 상황을 분류하고, 비슷한 과거 사례를 찾아 주고, **민원 답변 초안**까지 써 주는 웹 챗봇입니다.
 
-First, run the development server:
+> 이 프로젝트는 연습용 사례 자료와 함께 만든 실습 결과물입니다. 실제 내부 문서나 실제 민원 기록은 들어 있지 않습니다.
+
+## 어떤 문제를 푸나요?
+
+현장사진을 보고 상황을 판단하고, 비슷한 사례를 찾고, 민원 답변을 쓰는 일이 담당자 개인의 경험과 기억에 기대고 있습니다. 같은 상황이라도 담당자마다 판단과 답변이 달라지고, 사례와 문구를 찾는 데 시간이 오래 걸립니다. 이 앱은 사진과 질문 한 번으로 **상황 분류 → 유사 사례 → 답변 초안**을 한 번에 보여 줍니다. 최종 검토와 발송은 항상 담당자가 합니다.
+
+## 주요 기능
+
+| 기능 | 설명 |
+|---|---|
+| 현장사진 분석 | 사진 최대 3장(장당 10MB 이하, JPG·PNG)과 질문(1~500자)을 올립니다. 사진은 브라우저에서 긴 변 1568px JPG로 줄여 보냅니다. |
+| 상황 분류 | 무단점유, 시설물 훼손, 불법 경작, 쓰레기 무단투기, 기타 중 하나와 확신도(%)를 보여 줍니다. 확신도가 60% 미만이면 "판단 어려움 — 현장 재확인 필요"로 답합니다. |
+| 유사 사례 | 등록된 사례 자료 안에서, 같은 분류의 사례를 최대 3건(사례 번호·제목)까지 보여 줍니다. 없으면 "유사 사례 없음"입니다. |
+| 민원 답변 초안 | 공문체, 끝맺음 문구를 포함해 500자 이내. 개인정보는 `[민원인]` 같은 빈칸으로 두고, 맨 끝에 "※ AI 초안 — 담당자 검토 후 사용"이 붙습니다. [복사] 버튼으로 한 번에 복사할 수 있습니다. |
+
+## 사용 흐름
+
+현장사진 올리기 → 질문 입력 → AI 분석 → 상황 분류 · 유사 사례 · 답변 초안 확인 → 담당자가 검토하고 고쳐서 사용
+
+## 기술 스택
+
+- **Next.js 16.4.3** (App Router) · React 19 · TypeScript · Tailwind CSS 4 — 화면과 서버 API(`/api/analyze`)를 한 프로젝트에서 처리
+- **Claude API** (`@anthropic-ai/sdk`, 모델 `claude-opus-5-5`) — 서버 코드에서만 호출
+- **zod** — AI 답이 약속한 모양(분류·확신도·근거·사례·초안)인지 검사
+- 배포: **Vercel**
+
+## 직접 실행해 보기
+
+```bash
+npm install
+```
+
+프로젝트 맨 위에 `.env` 파일을 만들고 Claude API 키를 한 줄 넣습니다. (키 이름 앞에 `NEXT_PUBLIC_`를 붙이지 마세요. 브라우저에 노출됩니다.)
+
+```
+ANTHROPIC_API_KEY=여기에_발급받은_키
+```
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+브라우저에서 http://localhost:3000 을 엽니다. 키가 없으면 화면은 열리지만 분석 요청은 "AI 응답에 문제가 있어요"로 끝납니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 폴더 구조
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+app/
+  page.tsx              첫 화면(대화 상태 관리)
+  components/           머리글, 대화 영역, 사진 올리기, 입력 줄, 결과 카드, 대기 표시, 복사 버튼
+  api/analyze/route.ts  서버 API: 입력 다시 검사 → Claude 호출 → 규칙 후처리
+lib/
+  claude.ts             Claude 호출(서버 전용)
+  classification.ts     확신도 60% 규칙, 사례 걸러내기, 초안 마무리(키 없이 시험 가능한 순수 함수)
+  constants.ts, types.ts, cases.ts
+data/cases.json         연습용 사례 15건
+```
 
-## Learn More
+## 문서
 
-To learn more about Next.js, take a look at the following resources:
+| 문서 | 내용 |
+|---|---|
+| [PRD.md](PRD.md) | 기획서: 문제, 목표, 기능, 범위, 보안·개인정보 |
+| [PLAN.md](PLAN.md) | 개발 계획: 이번 사이클 목표·성공 기준과 작업 순서 |
+| [DESIGN.md](DESIGN.md) | 설계서: 화면 구성, 데이터 흐름, 기술 선택 |
+| [CHECK.md](CHECK.md) | 점검 결과: 설계 대비 차이, 성공 기준 판정, 보안 점검 |
+| [CLAUDE.md](CLAUDE.md) | AI와 함께 작업할 때 지키는 프로젝트 규칙 |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 보안과 개인정보
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- API 키는 `.env`(Git 제외)와 배포 환경 변수에만 두며, 서버 코드에서만 읽습니다. 브라우저 코드에는 키가 없습니다.
+- 사진·질문·결과는 서버에 저장하지 않습니다. 로그에는 오류 종류만 남깁니다.
+- 사진과 질문은 답을 만들기 위해 외부 AI 서비스(Anthropic)로 전송됩니다. 얼굴·차량 번호판·주소가 보이는 사진, 민원인의 이름·연락처는 올리지 마세요.
+- 서버는 사진 형식·크기·장수와 질문 길이를 다시 검사하고, 다른 사이트에서 보낸 요청은 거절합니다. AI 답의 링크·전화번호는 지우고, 초안의 단정·약속 표현에는 주의 문구를 붙입니다.
+- 로그인이 없는 공개 앱이므로, 배포할 때는 Anthropic 콘솔에서 월 사용 한도를 꼭 걸어 두세요.
 
-## Deploy on Vercel
+## 현재 상태와 한계
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- 화면·사진 처리·서버 검사·분류/사례/초안 규칙은 만들어져 있고, 규칙 코드는 키 없이 시험했습니다(`CHECK.md` 참고).
+- **실제 Claude로 사진을 분석해 본 시험, 테스트 사진 20장으로 하는 성공 기준(정답률 80% 등) 측정은 아직 하지 않았습니다.**
+- 사례 추가 화면, 질문·답변 기록 저장은 만들지 않았습니다.
