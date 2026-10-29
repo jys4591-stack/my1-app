@@ -1,13 +1,13 @@
 // 서버 API: POST /api/analyze (DESIGN.md 5절)
-// 사진(1~3장) + 질문을 FormData로 받아 다시 검사한 뒤 Claude 답을 돌려줍니다.
-import Anthropic from "@anthropic-ai/sdk";
+// 사진(1~3장) + 질문을 FormData로 받아 다시 검사한 뒤 AI(OpenAI) 답을 돌려줍니다.
+import OpenAI from "openai";
 import {
-  askClaudeAboutPhotos,
-  ClaudeRefusalError,
-  ClaudeFormatError,
+  askAiAboutPhotos,
+  AiRefusalError,
+  AiFormatError,
   MissingApiKeyError,
   type PhotoInput,
-} from "@/lib/claude";
+} from "@/lib/ai";
 
 // Vercel에서 이 함수가 붙잡혀 있을 수 있는 최대 시간(초)
 export const maxDuration = 60;
@@ -100,20 +100,23 @@ export async function POST(request: Request) {
   }
 
   try {
-    const classification = await askClaudeAboutPhotos(question.trim(), photos);
+    const classification = await askAiAboutPhotos(question.trim(), photos);
     return Response.json({ classification });
   } catch (error) {
     // 로그에는 사진·질문 내용을 남기지 않고 오류 종류만 남깁니다 (DESIGN.md 8절)
-    console.error("[api/analyze]", error instanceof Error ? error.name : error);
+    console.error(
+      "[api/analyze]",
+      error instanceof Error ? error.constructor.name : error,
+    );
 
     // 키가 없거나 틀린 경우는 서버 로그(오류 종류)로만 알리고, 화면에는 공통 안내만 보냅니다.
-    if (error instanceof MissingApiKeyError || error instanceof ClaudeFormatError) {
+    if (error instanceof MissingApiKeyError || error instanceof AiFormatError) {
       return errorResponse(500, AI_ERROR);
     }
-    if (error instanceof ClaudeRefusalError) {
+    if (error instanceof AiRefusalError) {
       return errorResponse(502, "이 사진은 분석할 수 없어요.");
     }
-    if (error instanceof Anthropic.RateLimitError) {
+    if (error instanceof OpenAI.RateLimitError) {
       return errorResponse(429, "요청이 많아요. 잠시 후 다시 시도해 주세요.");
     }
     return errorResponse(502, AI_ERROR);

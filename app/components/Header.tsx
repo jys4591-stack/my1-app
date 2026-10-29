@@ -13,7 +13,7 @@ export default function Header() {
         얼굴·차량 번호판·주소가 보이는 사진은 올리지 마세요.
       </p>
       <p className="text-xs text-zinc-500">
-        사진과 질문은 답을 만들기 위해 외부 AI 서비스(Anthropic)로
+        사진과 질문은 답을 만들기 위해 외부 AI 서비스(OpenAI)로
         전송됩니다. 민원인 이름·연락처·주소는 적지 마세요.
       </p>
     </header>

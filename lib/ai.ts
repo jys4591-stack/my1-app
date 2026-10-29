@@ -1,8 +1,8 @@
-// Claude 호출 (DESIGN.md 6절 "Claude 사용 설정", 9절 lib/claude.ts)
+// AI 호출 (DESIGN.md 6절 "AI 사용 설정", 9절 lib/ai.ts)
 // API 키를 쓰는 파일이라 서버에서만 불러옵니다. 화면 코드에서 불러오면 빌드가 실패합니다.
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
-import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
+import OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
 import {
   applyConfidenceRule,
   findReplyWarnings,
@@ -17,18 +17,18 @@ import {
   type Classification,
 } from "@/lib/types";
 
-export const CLAUDE_MODEL = "claude-opus-5-5";
+export const AI_MODEL = "gpt-5.5";
 
-// .env에 ANTHROPIC_API_KEY가 없을 때
+// .env에 OPENAI_API_KEY가 없을 때
 export class MissingApiKeyError extends Error {}
 
-// Claude가 안전 정책으로 답을 거절했을 때 (대체 모델까지 거절한 경우)
-export class ClaudeRefusalError extends Error {}
+// AI가 안전 정책으로 답을 거절했을 때
+export class AiRefusalError extends Error {}
 
-// Claude의 답이 약속한 모양(분류·확신도·이유·답)이 아닐 때 (DESIGN.md 3절 ⑦)
-export class ClaudeFormatError extends Error {}
+// AI의 답이 약속한 모양(분류·확신도·이유·답)이 아닐 때 (DESIGN.md 3절 ⑦)
+export class AiFormatError extends Error {}
 
-// Claude에 보낼 사진 하나 (base64로 바꾼 것)
+// AI에 보낼 사진 하나 (base64로 바꾼 것)
 export type PhotoInput = {
   mediaType: "image/jpeg" | "image/png";
   base64: string;
@@ -66,45 +66,36 @@ function buildSystemPrompt(cases: Case[]): string {
   ].join("\n");
 }
 
-function createClient(): Anthropic {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+function createClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new MissingApiKeyError("ANTHROPIC_API_KEY가 설정되지 않았어요.");
+    throw new MissingApiKeyError("OPENAI_API_KEY가 설정되지 않았어요.");
   }
-  return new Anthropic({ apiKey });
+  return new OpenAI({ apiKey });
 }
 
 // PLAN 9~12: 사진(1~3장) + 질문을 보내 상황 분류(분류·확신도·이유·짧은 답), 유사 사례, 민원 답변 초안을 받습니다.
-export async function askClaudeAboutPhotos(
+export async function askAiAboutPhotos(
   question: string,
   photos: PhotoInput[],
 ): Promise<Classification> {
   const client = createClient();
   const cases = getCases();
 
-  const response = await client.beta.messages.parse({
-    model: CLAUDE_MODEL,
+  const completion = await client.chat.completions.parse({
+    model: AI_MODEL,
     // 요청 1건의 최대 비용을 묶어 두기 위한 상한 (생각하는 데 쓰는 양 포함)
-    max_tokens: 4000,
-    output_config: {
-      effort: "medium", // DESIGN.md 6절: 비용과 정확도의 균형
-      format: betaZodOutputFormat(ClassificationSchema), // 답을 정해진 JSON 모양으로 받음
-    },
-    // 거절되면 다른 모델이 이어서 답하도록 서버 측 대체 모델 사용 (DESIGN.md 6절)
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
-    system: buildSystemPrompt(cases),
+    max_completion_tokens: 4000,
+    reasoning_effort: "medium", // DESIGN.md 6절: 비용과 정확도의 균형
+    response_format: zodResponseFormat(ClassificationSchema, "classification"), // 답을 정해진 JSON 모양으로 받음
     messages: [
+      { role: "system", content: buildSystemPrompt(cases) },
       {
         role: "user",
         content: [
           ...photos.map((photo) => ({
-            type: "image" as const,
-            source: {
-              type: "base64" as const,
-              media_type: photo.mediaType,
-              data: photo.base64,
-            },
+            type: "image_url" as const,
+            image_url: { url: `data:${photo.mediaType};base64,${photo.base64}` },
           })),
           // 질문은 태그로 감싸 "자료"임을 표시합니다. 질문 안의 태그 글자는 지워 태그를 닫고 빠져나가지 못하게 합니다.
           {
@@ -116,14 +107,15 @@ export async function askClaudeAboutPhotos(
     ],
   });
 
-  if (response.stop_reason === "refusal") {
-    throw new ClaudeRefusalError("Claude가 이 요청에 답하지 않았어요.");
+  const message = completion.choices[0]?.message;
+  if (message?.refusal) {
+    throw new AiRefusalError("AI가 이 요청에 답하지 않았어요.");
   }
 
   // 약속한 모양이 아니면 화면에 내보내지 않습니다 (DESIGN.md 3절 ⑦)
-  const parsed = ClassificationSchema.safeParse(response.parsed_output);
+  const parsed = ClassificationSchema.safeParse(message?.parsed);
   if (!parsed.success) {
-    throw new ClaudeFormatError("Claude의 답이 약속한 모양이 아니에요.");
+    throw new AiFormatError("AI의 답이 약속한 모양이 아니에요.");
   }
 
   // 확신도 60% 미만이면 "판단 어려움"으로 바꾸고, 없는 번호·다른 분류의 사례는 버립니다.
