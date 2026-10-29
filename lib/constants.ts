@@ -21,3 +21,6 @@ export const UNSURE_CATEGORY = "판단 어려움";
 // 끝맺음 문구를 포함해 공백 포함 500자 이내로 합니다.
 export const MAX_REPLY_LENGTH = 500;
 export const REPLY_FOOTER = "※ AI 초안 — 담당자 검토 후 사용";
+
+// 배포된 앱 주소 (sitemap, robots, 구조화 데이터에서 씁니다)
+export const SITE_URL = "https://my1-app.vercel.app";
