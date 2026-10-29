@@ -24,7 +24,17 @@ export const ClassificationSchema = z.object({
   confidence: z.number(), // 0~100 (AI 자체 추정치, 참고용)
   reason: z.string(), // 그렇게 판단한 이유 한두 문장
   answer: z.string(), // 질문에 대한 짧은 답
+  similarCaseIds: z.array(z.string()), // 비슷한 사례 번호 (비슷한 순서, 목록에 있는 번호만)
 });
+
+// Claude가 낸 그대로의 답 (규칙을 적용하기 전)
+export type RawClassification = z.infer<typeof ClassificationSchema>;
+
+// 화면에 보여 줄 유사 사례 한 건: 출처는 사례 번호·제목 (PRD.md 5번)
+export type SimilarCase = {
+  id: string;
+  title: string;
+};
 
 // 화면에 보여 줄 최종 분류 결과 (확신도 60% 미만이면 category가 "판단 어려움")
 export type Classification = {
@@ -32,6 +42,7 @@ export type Classification = {
   confidence: number; // 0~100 정수
   reason: string;
   answer: string;
+  similarCases: SimilarCase[]; // 최대 3건, 없으면 빈 목록 → 화면에 "유사 사례 없음"
 };
 
 // 사례 하나 = 6칸 (PRD.md 6번 범위)

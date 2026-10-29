@@ -20,6 +20,16 @@ function formatClassification(result: Classification): string {
       : [`상황 분류: ${result.category} (확신도 ${result.confidence}%)`];
   if (result.reason) lines.push(`근거: ${result.reason}`);
   if (result.answer) lines.push(result.answer);
+
+  // 유사 사례: 출처는 사례 번호·제목 (PRD.md 5번). 없으면 "유사 사례 없음"
+  if (result.similarCases.length === 0) {
+    lines.push("유사 사례 없음");
+  } else {
+    lines.push("유사 사례");
+    for (const item of result.similarCases) {
+      lines.push(`- ${item.id} ${item.title}`);
+    }
+  }
   return lines.join("\n");
 }
 
