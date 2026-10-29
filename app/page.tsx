@@ -7,9 +7,21 @@ import ChatList from "@/app/components/ChatList";
 import Header from "@/app/components/Header";
 import PhotoPicker from "@/app/components/PhotoPicker";
 import QuestionInput from "@/app/components/QuestionInput";
-import type { ChatMessage, PickedPhoto } from "@/lib/types";
+import { UNSURE_CATEGORY } from "@/lib/types";
+import type { ChatMessage, Classification, PickedPhoto } from "@/lib/types";
 
 const NETWORK_ERROR = "서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.";
+
+// 분류 결과를 말풍선 글로 바꿉니다. (결과 카드는 PLAN 13번에서 만듭니다)
+function formatClassification(result: Classification): string {
+  const lines =
+    result.category === UNSURE_CATEGORY
+      ? [`상황 분류: ${UNSURE_CATEGORY} — 현장 재확인 필요 (확신도 ${result.confidence}%)`]
+      : [`상황 분류: ${result.category} (확신도 ${result.confidence}%)`];
+  if (result.reason) lines.push(`근거: ${result.reason}`);
+  if (result.answer) lines.push(result.answer);
+  return lines.join("\n");
+}
 
 export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -47,12 +59,14 @@ export default function Home() {
         method: "POST",
         body: formData,
       });
-      const data: { answer?: string; error?: string } = await response
-        .json()
-        .catch(() => ({}));
+      const data: { classification?: Classification; error?: string } =
+        await response.json().catch(() => ({}));
 
-      if (response.ok && data.answer) {
-        addMessage({ role: "assistant", text: data.answer });
+      if (response.ok && data.classification) {
+        addMessage({
+          role: "assistant",
+          text: formatClassification(data.classification),
+        });
       } else {
         addMessage({
           role: "assistant",

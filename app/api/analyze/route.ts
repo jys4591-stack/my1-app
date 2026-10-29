@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import {
   askClaudeAboutPhotos,
   ClaudeRefusalError,
+  ClaudeFormatError,
   MissingApiKeyError,
   type PhotoInput,
 } from "@/lib/claude";
@@ -99,14 +100,14 @@ export async function POST(request: Request) {
   }
 
   try {
-    const answer = await askClaudeAboutPhotos(question.trim(), photos);
-    return Response.json({ answer });
+    const classification = await askClaudeAboutPhotos(question.trim(), photos);
+    return Response.json({ classification });
   } catch (error) {
     // 로그에는 사진·질문 내용을 남기지 않고 오류 종류만 남깁니다 (DESIGN.md 8절)
     console.error("[api/analyze]", error instanceof Error ? error.name : error);
 
     // 키가 없거나 틀린 경우는 서버 로그(오류 종류)로만 알리고, 화면에는 공통 안내만 보냅니다.
-    if (error instanceof MissingApiKeyError) {
+    if (error instanceof MissingApiKeyError || error instanceof ClaudeFormatError) {
       return errorResponse(500, AI_ERROR);
     }
     if (error instanceof ClaudeRefusalError) {

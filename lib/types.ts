@@ -1,5 +1,6 @@
 // 사례·결과 모양 정의 (DESIGN.md 4절)
-// 지금은 일반 TypeScript 타입으로 두고, PLAN 10번에서 zod로 바꿉니다.
+// AI 답의 모양은 zod로 정해 두고, 약속한 모양이 아니면 화면에 내보내지 않습니다. (PLAN 10번)
+import { z } from "zod";
 
 // 상황 분류 5개 (PRD.md 5번 must ①)
 export const CATEGORIES = [
@@ -11,6 +12,27 @@ export const CATEGORIES = [
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
+
+// 확신도가 이 값 미만이면 분류 대신 "판단 어려움"으로 답합니다. (PRD.md 5번)
+export const CONFIDENCE_THRESHOLD = 60;
+export const UNSURE_CATEGORY = "판단 어려움";
+
+// Claude에게 받는 답의 모양 (DESIGN.md 4절 "AI 결과")
+// 사진이 여러 장이어도 같은 현장으로 보고 분류 1개·확신도 1개를 냅니다. (PRD.md 5번)
+export const ClassificationSchema = z.object({
+  category: z.enum(CATEGORIES), // 5개 분류 중 가장 가까운 것
+  confidence: z.number(), // 0~100 (AI 자체 추정치, 참고용)
+  reason: z.string(), // 그렇게 판단한 이유 한두 문장
+  answer: z.string(), // 질문에 대한 짧은 답
+});
+
+// 화면에 보여 줄 최종 분류 결과 (확신도 60% 미만이면 category가 "판단 어려움")
+export type Classification = {
+  category: Category | typeof UNSURE_CATEGORY;
+  confidence: number; // 0~100 정수
+  reason: string;
+  answer: string;
+};
 
 // 사례 하나 = 6칸 (PRD.md 6번 범위)
 export type Case = {
