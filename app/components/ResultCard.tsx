@@ -1,5 +1,6 @@
 // ② 안의 결과 카드: 상황 분류 → 유사 사례 → 민원 답변 초안을 구분해서 보여 줍니다 (DESIGN.md 2절, PLAN 13)
 // 모든 글은 글자 그대로만 보여 줍니다. (마크다운·HTML로 바꾸지 않습니다: XSS 대비)
+import CopyButton from "@/app/components/CopyButton";
 import { UNSURE_CATEGORY } from "@/lib/constants";
 import type { Classification } from "@/lib/types";
 
@@ -67,7 +68,10 @@ export default function ResultCard({ result }: Props) {
       {/* 3. 민원 답변 초안: 끝맺음 문구는 서버가 이미 붙여 둠. 업무 밖 요청이면 초안이 없음 */}
       {result.replyDraft && (
         <section className="flex flex-col gap-2 border-t border-zinc-200 pt-3 dark:border-zinc-700">
-          <h3 className="text-xs font-semibold text-zinc-500">민원 답변 초안</h3>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-xs font-semibold text-zinc-500">민원 답변 초안</h3>
+            <CopyButton text={result.replyDraft} label="민원 답변 초안 복사" />
+          </div>
           <p className="whitespace-pre-wrap rounded-lg bg-zinc-50 px-3 py-2 text-sm leading-6 dark:bg-zinc-800">
             {result.replyDraft}
           </p>
