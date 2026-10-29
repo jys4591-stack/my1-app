@@ -1,26 +1,18 @@
 // 사례·결과 모양 정의 (DESIGN.md 4절)
 // AI 답의 모양은 zod로 정해 두고, 약속한 모양이 아니면 화면에 내보내지 않습니다. (PLAN 10번)
 import { z } from "zod";
+import { CATEGORIES, UNSURE_CATEGORY, type Category } from "./constants";
 
-// 상황 분류 5개 (PRD.md 5번 must ①)
-export const CATEGORIES = [
-  "무단점유",
-  "시설물 훼손",
-  "불법 경작",
-  "쓰레기 무단투기",
-  "기타",
-] as const;
-
-export type Category = (typeof CATEGORIES)[number];
-
-// 확신도가 이 값 미만이면 분류 대신 "판단 어려움"으로 답합니다. (PRD.md 5번)
-export const CONFIDENCE_THRESHOLD = 60;
-export const UNSURE_CATEGORY = "판단 어려움";
-
-// 민원 답변 초안 규칙 (PRD.md 5번 must ②)
-// 끝맺음 문구를 포함해 공백 포함 500자 이내로 합니다.
-export const MAX_REPLY_LENGTH = 500;
-export const REPLY_FOOTER = "※ AI 초안 — 담당자 검토 후 사용";
+// 상수는 lib/constants.ts에 있습니다. 서버 코드가 이 파일 하나에서 모두 가져올 수 있게 다시 내보냅니다.
+// (브라우저 코드는 zod가 딸려 오지 않도록 lib/constants.ts에서 직접 가져옵니다)
+export {
+  CATEGORIES,
+  CONFIDENCE_THRESHOLD,
+  MAX_REPLY_LENGTH,
+  REPLY_FOOTER,
+  UNSURE_CATEGORY,
+} from "./constants";
+export type { Category } from "./constants";
 
 // Claude에게 받는 답의 모양 (DESIGN.md 4절 "AI 결과")
 // 사진이 여러 장이어도 같은 현장으로 보고 분류 1개·확신도 1개를 냅니다. (PRD.md 5번)
@@ -78,4 +70,5 @@ export type ChatMessage = {
   text: string;
   photoUrls?: string[]; // 내가 보낸 사진 미리보기
   isError?: boolean; // 오류 안내 말풍선이면 빨간색으로 표시
+  result?: Classification; // AI 분석 결과가 있으면 말풍선 대신 결과 카드로 보여 줌
 };

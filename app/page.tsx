@@ -7,39 +7,11 @@ import ChatList from "@/app/components/ChatList";
 import Header from "@/app/components/Header";
 import PhotoPicker from "@/app/components/PhotoPicker";
 import QuestionInput from "@/app/components/QuestionInput";
-import { UNSURE_CATEGORY } from "@/lib/types";
+// 주의: 이 파일(브라우저 코드)은 lib/types.ts의 값을 가져오지 않습니다. (zod가 브라우저로 딸려 오는 것을 막으려고)
+// 타입만 가져오는 것은 괜찮습니다.
 import type { ChatMessage, Classification, PickedPhoto } from "@/lib/types";
 
 const NETWORK_ERROR = "서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.";
-
-// 분류 결과를 말풍선 글로 바꿉니다. (결과 카드는 PLAN 13번에서 만듭니다)
-function formatClassification(result: Classification): string {
-  const lines =
-    result.category === UNSURE_CATEGORY
-      ? [`상황 분류: ${UNSURE_CATEGORY} — 현장 재확인 필요 (확신도 ${result.confidence}%)`]
-      : [`상황 분류: ${result.category} (확신도 ${result.confidence}%)`];
-  if (result.reason) lines.push(`근거: ${result.reason}`);
-  if (result.answer) lines.push(result.answer);
-
-  // 유사 사례: 출처는 사례 번호·제목 (PRD.md 5번). 없으면 "유사 사례 없음"
-  if (result.similarCases.length === 0) {
-    lines.push("유사 사례 없음");
-  } else {
-    lines.push("유사 사례");
-    for (const item of result.similarCases) {
-      lines.push(`- ${item.id} ${item.title}`);
-    }
-  }
-
-  // 민원 답변 초안 (끝맺음 문구는 서버가 이미 붙여 둠). 업무 밖 요청이면 초안이 없음
-  if (result.replyDraft) {
-    lines.push("", "민원 답변 초안", result.replyDraft);
-    for (const warning of result.replyWarnings) {
-      lines.push("", `⚠ 확인 필요: ${warning}`);
-    }
-  }
-  return lines.join("\n");
-}
 
 export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -81,9 +53,11 @@ export default function Home() {
         await response.json().catch(() => ({}));
 
       if (response.ok && data.classification) {
+        // 분류 → 유사 사례 → 초안은 결과 카드(ResultCard)가 구분해서 보여 줍니다
         addMessage({
           role: "assistant",
-          text: formatClassification(data.classification),
+          text: "분석 결과",
+          result: data.classification,
         });
       } else {
         addMessage({
