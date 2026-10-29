@@ -50,6 +50,7 @@ export type Classification = {
   answer: string;
   similarCases: SimilarCase[]; // 최대 3건, 없으면 빈 목록 → 화면에 "유사 사례 없음"
   replyDraft: string; // 끝맺음 문구까지 붙인 민원 답변 초안 (500자 이내, 없으면 빈 글)
+  replyWarnings: string[]; // 초안에서 서버가 찾아낸 주의 사항 (예: 단정·약속으로 읽히는 표현)
 };
 
 // 사례 하나 = 6칸 (PRD.md 6번 범위)

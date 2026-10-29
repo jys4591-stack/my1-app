@@ -14,10 +14,14 @@ import {
 // 유사 사례는 최대 3건 (PRD.md 5번)
 export const MAX_SIMILAR_CASES = 3;
 
+// 근거·짧은 답의 최대 글자 수. 사진 속 문구가 길게 따라 나오는 것을 막습니다.
+export const MAX_REASON_LENGTH = 200;
+export const MAX_ANSWER_LENGTH = 300;
+
 // 확신도를 0~100 정수로 맞추고, 60% 미만이면 분류를 "판단 어려움"으로 바꿉니다.
 export function applyConfidenceRule(
   raw: RawClassification,
-): Omit<Classification, "similarCases" | "replyDraft"> {
+): Omit<Classification, "similarCases" | "replyDraft" | "replyWarnings"> {
   const confidence = Number.isFinite(raw.confidence)
     ? Math.min(100, Math.max(0, Math.round(raw.confidence)))
     : 0;
@@ -25,8 +29,9 @@ export function applyConfidenceRule(
   return {
     category: confidence < CONFIDENCE_THRESHOLD ? UNSURE_CATEGORY : raw.category,
     confidence,
-    reason: raw.reason.trim(),
-    answer: raw.answer.trim(),
+    // 근거·답에도 링크·전화번호를 지우고 길이를 묶습니다. (사진 속 문구가 그대로 따라 나오는 것 대비)
+    reason: cleanText(raw.reason, MAX_REASON_LENGTH),
+    answer: cleanText(raw.answer, MAX_ANSWER_LENGTH),
   };
 }
 
@@ -106,4 +111,33 @@ export function finalizeReplyDraft(rawDraft: string): string {
   const body = cutToLength(withoutFooter, bodyMax);
 
   return `${body}${separator}${REPLY_FOOTER}`;
+}
+
+// 근거·짧은 답 같은 글을 정리합니다: 링크·전화번호·이메일 제거, 앞뒤 공백 제거, 길이 제한.
+function cleanText(text: string, maxLength: number): string {
+  return cutToLength(removeContactInfo(text).trim(), maxLength);
+}
+
+// 처분이나 결과를 단정하거나 약속하는 것으로 읽힐 수 있는 표현 (PRD.md 5번 must ②)
+// 글을 몰래 고치지 않고, 담당자가 검토할 때 알아채도록 주의 문구만 붙입니다.
+const RISKY_PHRASES = [
+  "예정", // "~할 예정입니다" 대신 "~검토하겠습니다"
+  "반드시",
+  "약속",
+  "보장",
+  "허가되었",
+  "허가하였",
+  "승인되었",
+  "승인하였",
+  "면제",
+];
+
+// 초안에서 단정·약속으로 읽힐 수 있는 표현을 찾아 주의 문구를 돌려줍니다. 없으면 빈 목록입니다.
+export function findReplyWarnings(draft: string): string[] {
+  const found = RISKY_PHRASES.filter((phrase) => draft.includes(phrase));
+  if (found.length === 0) return [];
+
+  return [
+    `초안에 ${found.map((phrase) => `"${phrase}"`).join(", ")} 표현이 있어요. 처분을 약속하거나 단정하는 말로 읽힐 수 있으니 "검토하겠습니다"처럼 고쳐서 사용해 주세요.`,
+  ];
 }

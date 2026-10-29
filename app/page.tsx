@@ -34,6 +34,9 @@ function formatClassification(result: Classification): string {
   // 민원 답변 초안 (끝맺음 문구는 서버가 이미 붙여 둠). 업무 밖 요청이면 초안이 없음
   if (result.replyDraft) {
     lines.push("", "민원 답변 초안", result.replyDraft);
+    for (const warning of result.replyWarnings) {
+      lines.push("", `⚠ 확인 필요: ${warning}`);
+    }
   }
   return lines.join("\n");
 }
