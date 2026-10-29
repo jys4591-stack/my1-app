@@ -30,6 +30,11 @@ function formatClassification(result: Classification): string {
       lines.push(`- ${item.id} ${item.title}`);
     }
   }
+
+  // 민원 답변 초안 (끝맺음 문구는 서버가 이미 붙여 둠). 업무 밖 요청이면 초안이 없음
+  if (result.replyDraft) {
+    lines.push("", "민원 답변 초안", result.replyDraft);
+  }
   return lines.join("\n");
 }
 

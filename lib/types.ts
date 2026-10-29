@@ -17,6 +17,11 @@ export type Category = (typeof CATEGORIES)[number];
 export const CONFIDENCE_THRESHOLD = 60;
 export const UNSURE_CATEGORY = "판단 어려움";
 
+// 민원 답변 초안 규칙 (PRD.md 5번 must ②)
+// 끝맺음 문구를 포함해 공백 포함 500자 이내로 합니다.
+export const MAX_REPLY_LENGTH = 500;
+export const REPLY_FOOTER = "※ AI 초안 — 담당자 검토 후 사용";
+
 // Claude에게 받는 답의 모양 (DESIGN.md 4절 "AI 결과")
 // 사진이 여러 장이어도 같은 현장으로 보고 분류 1개·확신도 1개를 냅니다. (PRD.md 5번)
 export const ClassificationSchema = z.object({
@@ -25,6 +30,7 @@ export const ClassificationSchema = z.object({
   reason: z.string(), // 그렇게 판단한 이유 한두 문장
   answer: z.string(), // 질문에 대한 짧은 답
   similarCaseIds: z.array(z.string()), // 비슷한 사례 번호 (비슷한 순서, 목록에 있는 번호만)
+  replyDraft: z.string(), // 민원 답변 초안 본문 (끝맺음 문구는 서버가 붙임, 업무 밖 요청이면 빈 글)
 });
 
 // Claude가 낸 그대로의 답 (규칙을 적용하기 전)
@@ -43,6 +49,7 @@ export type Classification = {
   reason: string;
   answer: string;
   similarCases: SimilarCase[]; // 최대 3건, 없으면 빈 목록 → 화면에 "유사 사례 없음"
+  replyDraft: string; // 끝맺음 문구까지 붙인 민원 답변 초안 (500자 이내, 없으면 빈 글)
 };
 
 // 사례 하나 = 6칸 (PRD.md 6번 범위)
